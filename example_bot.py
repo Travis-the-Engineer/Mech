@@ -19,11 +19,11 @@ class Bot:
         took_damage = self.last_hp is not None and hp < self.last_hp
         self.last_hp = hp
 
-        if obs["offer"]:
+        if obs.get("offer"):
             act["pick"] = 0
 
         pickups = sorted(
-            obs["pickups"],
+            obs.get("pickups", []),
             key=lambda p: math.dist(p["pos"][:2], (x, y)),
         )
         near = [
@@ -31,7 +31,7 @@ class Bot:
         ]
 
         enemies = sorted(
-            (m for m in obs["mechs"] if m["kind"] == "mech"),
+            (m for m in obs.get("mechs", []) if m.get("kind") == "mech"),
             key=lambda m: math.dist(m["pos"], me["pos"]),
         )
 
@@ -44,7 +44,7 @@ class Bot:
         # Priority 1: Engage if threatened
         if engaged_enemy:
             t = engaged_enemy["pos"]
-            ev = engaged_enemy["vel"]
+            ev = engaged_enemy.get("vel", [0.0, 0.0, 0.0])
             dist_to_enemy = math.dist(t[:2], (x, y))
             bullet_speed = 252.0
             travel_time = dist_to_enemy / bullet_speed
@@ -63,7 +63,7 @@ class Bot:
             )
             mf.draw.line([x, y, z + 7], [t[0], t[1], t[2] + 4.5], "#ff5040")
             mf.draw.point([t[0], t[1], z], "#ff5040", 6)
-            mf.draw.label(f"hp {hp:.0f} · ENGAGING")
+            mf.draw.label(f"hp {hp:.0f} - ENGAGING")
 
         # Priority 2: Hide from known enemy
         elif enemies:
@@ -72,10 +72,10 @@ class Bot:
             act.update(
                 move=[math.cos(yaw), math.sin(yaw)],
                 aim=[yaw, 0.0],
-                boost=not me["in_zone"],
+                boost=not me.get("in_zone", True),
             )
             mf.draw.point([x, y, z], "#40c0ff", 6)
-            mf.draw.label(f"hp {hp:.0f} · HIDING")
+            mf.draw.label(f"hp {hp:.0f} - HIDING")
 
         # Priority 3: Pick up within reach
         elif near:
@@ -85,22 +85,22 @@ class Bot:
             act.update(
                 move=[math.cos(yaw), math.sin(yaw)],
                 aim=[yaw, 0.0],
-                boost=not me["in_zone"],
+                boost=not me.get("in_zone", True),
             )
             mf.draw.point([target[0], target[1], z], "#40c0ff", 6)
-            mf.draw.label(f"hp {hp:.0f} · LOOTING")
+            mf.draw.label(f"hp {hp:.0f} - LOOTING")
 
         # Priority 4: Go to nearest loot
-        elif pickups and me["in_zone"]:
+        elif pickups and me.get("in_zone", True):
             target = pickups[0]["pos"]
             yaw = math.atan2(target[1] - y, target[0] - x)
             act.update(
                 move=[math.cos(yaw), math.sin(yaw)],
                 aim=[yaw, 0.0],
-                boost=not me["in_zone"],
+                boost=not me.get("in_zone", True),
             )
             mf.draw.point([target[0], target[1], z], "#40c0ff", 6)
-            mf.draw.label(f"hp {hp:.0f} · GOING TO LOOT")
+            mf.draw.label(f"hp {hp:.0f} - GOING TO LOOT")
 
         # Fallback: Go to zone center
         else:
@@ -108,9 +108,12 @@ class Bot:
             act.update(
                 move=[math.cos(yaw), math.sin(yaw)],
                 aim=[yaw, 0.0],
-                boost=not me["in_zone"],
+                boost=not me.get("in_zone", True),
             )
             mf.draw.point([goal[0], goal[1], z], "#40c0ff", 6)
-            mf.draw.label(f"hp {hp:.0f} · ZONE")
+            mf.draw.label(f"hp {hp:.0f} - ZONE")
 
         return act
+
+
+mf.run(Bot)
